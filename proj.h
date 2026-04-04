@@ -25,10 +25,8 @@ struct EventQueueNode {
 
 class Simulation {
 	public:
-		Simulation(int seed_in, double lambda_in, double mu_in) {
-			lambda = lambda_in;
-			mu = mu_in;
-			seed = seed_in;
+		Simulation(char* filename_in, int start_inst_in, int inst_count_in, int depth_config_in) {
+
 		};
 		~Simulation() {
 			//delete ElementQ;
@@ -45,10 +43,7 @@ class Simulation {
 			
 		};
 	private:
-	// inputs
-	double lambda;
-	double mu;
-	int seed;
+        
 
 	// queues
 };
