@@ -13,7 +13,7 @@ int main(int argc, char* argv[]){
 		int start_inst = atoi(argv[2]);			// first instruction of trace to simulate
 		int inst_count = atoi(argv[3]);			// total number of instructions to run
 		int D = atoi(argv[4]);					// Pipeline depth configuration D = 1, 2, 3, 4
-   
+		
 	   	// Add error checks for input variables here, exit with exit code 1 if input is incorrect
 		if ( !std::filesystem::exists(trace_file_name) ) {
 			printf("Cannot locate trace file: %s. Terminating Simulation...\n", trace_file_name);
@@ -28,8 +28,7 @@ int main(int argc, char* argv[]){
 			return 1;
 		}
 
-
-   		// If no input errors, create processor simulation s
+   		// If no input errors, create Simulation s
    		Simulation* s = new Simulation(trace_file_name, start_inst, inst_count, D);
 
    		// Start Simulation
@@ -37,6 +36,7 @@ int main(int argc, char* argv[]){
 		s->RunSimulation();
 		s->PrintStatistics();
 
+		// Delete s
 		delete s;
 		return 0;
 	}
