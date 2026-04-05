@@ -21,9 +21,12 @@ class Simulation {
 			inst_count = inst_count_in;
 			depth_config = depth_config_in;
 
+			ElementQ = new ElementQueue(filename, start_inst, inst_count);
+			// ElementQ->PrintElementQueue();	// For debug
+
 		};
 		~Simulation() {
-			//delete ElementQ;
+			delete ElementQ;
 			//delete EventQ;
 		};
 
