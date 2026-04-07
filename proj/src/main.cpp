@@ -8,7 +8,7 @@
 int main(int argc, char* argv[]){
 
 	// input arguments lambda, mu
-	if(argc >= 4){
+	if(argc >= 5){
 		char* trace_file_name = argv[1];		// filename of trace
 		int start_inst = atoi(argv[2]);			// first instruction of trace to simulate
 		int inst_count = atoi(argv[3]);			// total number of instructions to run
