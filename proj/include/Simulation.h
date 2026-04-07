@@ -18,7 +18,7 @@
 #define SIMULATION_H_
 
 struct PipelineInst {
-    ElementQueueNode* trace_inst;                    // pointer to trace instruction
+    ElementQueueNode* trace_inst;                   // pointer to trace instruction
     uint64_t seq_num;                               // instruction number
     int ex_cycles_left;                             // remaining EX cycles
     int mem_cycles_left;                            // remaining MEM cycles
@@ -62,6 +62,9 @@ class Simulation {
 		~Simulation() {
 			delete ElementQ;
 			//delete EventQ;
+			for (PipelineInst* inst : all_insts) {
+        		     delete inst;
+    			}
 		};
 
 		// Simulation events
@@ -131,8 +134,10 @@ class Simulation {
         std::deque<PipelineInst*> ex_stage;
         std::deque<PipelineInst*> mem_stage;
         std::deque<PipelineInst*> wb_stage;
-
+	
         std::unordered_map<std::string, PipelineInst*> last_dynamic_pc;
+        
+        std::vector<PipelineInst*> all_insts;
 
         int GetEXLatency(int inst_type) const;
         int GetMEMLatency(int inst_type) const;
@@ -147,3 +152,52 @@ class Simulation {
 
 
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
