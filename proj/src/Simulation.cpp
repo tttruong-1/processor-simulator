@@ -56,6 +56,7 @@ PipelineInst* Simulation::BuildFetchedInstruction(ElementQueueNode* src) {
     }
 
     PipelineInst* inst = new PipelineInst;
+    all_insts.push_back(inst);
     inst->trace_inst = src;
     inst->seq_num = next_seq_num++;
     inst->ex_cycles_left = GetEXLatency(src->inst_type);
@@ -154,7 +155,7 @@ void Simulation::InstructionIssueAndExecute() {
         mem_stage.push_back(inst);
         moved_to_mem++;
 
-        if (type == 1 || type == 2) {
+        if (type == 1 || type == 2 || type == 3) {
             MarkDependenceSatisfied(inst);
         }
 
@@ -242,7 +243,7 @@ void Simulation::WritebackResults() {
             default: break;
         }
 
-        delete inst;
+
     }
 }
 
@@ -250,6 +251,9 @@ void Simulation::RunSimulation() {
     printf("Running Simulation\n");
 
     while (retired_count < inst_count || !PipelineEmpty()) {
+        if (simulation_clock % 100000 == 0) {
+            printf("Cycle: %d | Retired: %d\n", simulation_clock, retired_count);
+        }
         // WB -> MEM -> EX -> ID -> IF
         WritebackResults();
         Memoryaccess();
