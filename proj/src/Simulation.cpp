@@ -1,6 +1,7 @@
 #include "Simulation.h"
 
 
+//-----------------Simulation Delays and Execution Times--------------------
 int Simulation::GetEXLatency(int inst_type) const {
     // D=2 and D=4: FP spends 2 cycles in EX
     if ((depth_config == 2 || depth_config == 4) && inst_type == 2) {
@@ -32,6 +33,8 @@ double Simulation::GetExecutionTimeMs() const {
     return (double)simulation_clock / (GetFrequencyGHz() * 1000000.0);
 }
 
+
+//-----------------Simulation Helpers--------------------------------
 bool Simulation::PipelineEmpty() const {
     return if_stage.empty() && id_stage.empty() && ex_stage.empty() &&
            mem_stage.empty() && wb_stage.empty();
@@ -50,12 +53,16 @@ void Simulation::MarkDependenceSatisfied(PipelineInst* inst) {
     }
 }
 
+/**
+    Makes the pipeline instance (fetches instruction)
+ */
 PipelineInst* Simulation::BuildFetchedInstruction(ElementQueueNode* src) {
     if (src == nullptr) {
         return nullptr;
     }
 
     PipelineInst* inst = new PipelineInst;
+    all_insts.push_back(inst);
     inst->trace_inst = src;
     inst->seq_num = next_seq_num++;
     inst->ex_cycles_left = GetEXLatency(src->inst_type);
@@ -84,6 +91,8 @@ PipelineInst* Simulation::BuildFetchedInstruction(ElementQueueNode* src) {
     return inst;
 }
 
+
+//-----------------Simulation Pipeline Stages-----------------------------
 void Simulation::FetchInstruction() {
     if (fetch_stalled) {
         return;
@@ -154,7 +163,7 @@ void Simulation::InstructionIssueAndExecute() {
         mem_stage.push_back(inst);
         moved_to_mem++;
 
-        if (type == 1 || type == 2) {
+        if (type == 1 || type == 2 || type == 3) {
             MarkDependenceSatisfied(inst);
         }
 
@@ -238,18 +247,23 @@ void Simulation::WritebackResults() {
             case 2: cumulative_fp_inst++; break;
             case 3: cumulative_branch_inst++; break;
             case 4: cumulative_load_inst++; break;
-            case 5: clumulative_store_inst++; break;
+            case 5: cumulative_store_inst++; break;
             default: break;
         }
 
-        delete inst;
+
     }
 }
 
+
+//-----------------Simulation Loop--------------------------------
 void Simulation::RunSimulation() {
     printf("Running Simulation\n");
 
     while (retired_count < inst_count || !PipelineEmpty()) {
+        if (simulation_clock % 100000 == 0) {
+            printf("Cycle: %d | Retired: %d\n", simulation_clock, retired_count);
+        }
         // WB -> MEM -> EX -> ID -> IF
         WritebackResults();
         Memoryaccess();
