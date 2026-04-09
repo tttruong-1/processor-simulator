@@ -1,6 +1,7 @@
 #include "Simulation.h"
 
 
+//-----------------Simulation Delays and Execution Times--------------------
 int Simulation::GetEXLatency(int inst_type) const {
     // D=2 and D=4: FP spends 2 cycles in EX
     if ((depth_config == 2 || depth_config == 4) && inst_type == 2) {
@@ -32,6 +33,8 @@ double Simulation::GetExecutionTimeMs() const {
     return (double)simulation_clock / (GetFrequencyGHz() * 1000000.0);
 }
 
+
+//-----------------Simulation Helpers--------------------------------
 bool Simulation::PipelineEmpty() const {
     return if_stage.empty() && id_stage.empty() && ex_stage.empty() &&
            mem_stage.empty() && wb_stage.empty();
@@ -50,6 +53,9 @@ void Simulation::MarkDependenceSatisfied(PipelineInst* inst) {
     }
 }
 
+/**
+    Makes the pipeline instance (fetches instruction)
+ */
 PipelineInst* Simulation::BuildFetchedInstruction(ElementQueueNode* src) {
     if (src == nullptr) {
         return nullptr;
@@ -85,6 +91,8 @@ PipelineInst* Simulation::BuildFetchedInstruction(ElementQueueNode* src) {
     return inst;
 }
 
+
+//-----------------Simulation Pipeline Stages-----------------------------
 void Simulation::FetchInstruction() {
     if (fetch_stalled) {
         return;
@@ -239,7 +247,7 @@ void Simulation::WritebackResults() {
             case 2: cumulative_fp_inst++; break;
             case 3: cumulative_branch_inst++; break;
             case 4: cumulative_load_inst++; break;
-            case 5: clumulative_store_inst++; break;
+            case 5: cumulative_store_inst++; break;
             default: break;
         }
 
@@ -247,6 +255,8 @@ void Simulation::WritebackResults() {
     }
 }
 
+
+//-----------------Simulation Loop--------------------------------
 void Simulation::RunSimulation() {
     printf("Running Simulation\n");
 
