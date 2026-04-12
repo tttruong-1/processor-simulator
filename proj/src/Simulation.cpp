@@ -5,7 +5,7 @@
 //-----------------Simulation Delays and Execution Times--------------------
 int Simulation::GetEXLatency(int inst_type) const {
     // D=2 and D=4: FP spends 2 cycles in EX
-    if ((depth_config == 2 || depth_config == 4) && inst_type == 2) {
+    if ((depth_config == 2 || depth_config == 4) && inst_type == FLOATING_POINT) {
         return 2;
     }
     return 1;
@@ -13,7 +13,7 @@ int Simulation::GetEXLatency(int inst_type) const {
 
 int Simulation::GetMEMLatency(int inst_type) const {
     // D=3 and D=4: Loads spend 3 cycles in MEM
-    if ((depth_config == 3 || depth_config == 4) && inst_type == 4) {
+    if ((depth_config == 3 || depth_config == 4) && inst_type == LOAD) {
         return 3;
     }
     return 1;
@@ -111,7 +111,7 @@ void Simulation::FetchInstruction() {
         fetched_count++;
 
         // once a branch is fetched, stop fetching following instructions
-        if (src->inst_type == 3) {
+        if (src->inst_type == BRANCH) {
             fetch_stalled = true;
             break;
         }
@@ -136,11 +136,7 @@ void Simulation::InstructionIssueAndExecute() {
     }
 
     // Then move completed EX instructions to MEM in-order
-    int moved_to_mem = 0;
-    bool used_load_mem_port = false;
-    bool used_store_mem_port = false;
-
-    while (!ex_stage.empty() && moved_to_mem < 2) {
+    while (!ex_stage.empty() && mem_stage.size() < 2) {
         PipelineInst* inst = ex_stage.front();
 
         // in-order leaving EX
@@ -150,11 +146,11 @@ void Simulation::InstructionIssueAndExecute() {
 
         int type = inst->trace_inst->inst_type;
 
-        if (type == 4) {
+        if (type == LOAD) {
             if (used_load_mem_port) break;
             used_load_mem_port = true;
         }
-        if (type == 5) {
+        if (type == STORE) {
             if (used_store_mem_port) break;
             used_store_mem_port = true;
         }
@@ -162,25 +158,26 @@ void Simulation::InstructionIssueAndExecute() {
         ex_stage.pop_front();
         inst->entered_mem = true;
         mem_stage.push_back(inst);
-        moved_to_mem++;
 
-        if (type == INTEGER || type == FLOATING_POINT || type == BRANCH) {
+
+        if (type == INTEGER) {
             MarkDependenceSatisfied(inst);
+            used_int_unit = false;
         }
-
-        // Branch resolves after EX completes.
-        if (type == BRANCH) {
-            resume_fetch_next_cycle = true;
+        else if (type == FLOATING_POINT){
+            MarkDependenceSatisfied(inst);
+            used_fp_unit = false;
+        } 
+        else if (type == BRANCH) {
+            MarkDependenceSatisfied(inst); 
+            resume_fetch_next_cycle = true; // Branch resolves after EX completes.
+            used_branch_unit = false;
         }
     }
 
     // Issue from ID to EX
-    int issued_this_cycle = 0;
-    bool used_int_unit = false;
-    bool used_fp_unit = false;
-    bool used_branch_unit = false;
 
-    while (!id_stage.empty() && issued_this_cycle < 2) {
+    while (!id_stage.empty() && (int)ex_stage.size() < 2) {
         PipelineInst* inst = id_stage.front();
         int type = inst->trace_inst->inst_type;
 
@@ -197,7 +194,6 @@ void Simulation::InstructionIssueAndExecute() {
         id_stage.pop_front();
         inst->entered_ex = true;
         ex_stage.push_back(inst);
-        issued_this_cycle++;
 
         if (type == INTEGER) used_int_unit = true;
         if (type == FLOATING_POINT) used_fp_unit = true;
@@ -228,8 +224,14 @@ void Simulation::Memoryaccess() {
         moved_to_wb++;
 
         int type = inst->trace_inst->inst_type;
-        if (type == LOAD || type == STORE) {
+
+        if (type == LOAD){
             MarkDependenceSatisfied(inst);
+            used_load_mem_port = false;
+        }
+        else if (type == STORE){
+            MarkDependenceSatisfied(inst);
+            used_store_mem_port = false;
         }
     }
 }
@@ -261,16 +263,15 @@ void Simulation::WritebackResults() {
 void Simulation::RunSimulation() {
 
     while (retired_count < inst_count || !PipelineEmpty()) {
-        // if (simulation_clock % 100000 == 0) {
-            //     printf("Cycle: %d | Retired: %d\n", simulation_clock, retired_count);
-            // }
+
             // WB -> MEM -> EX -> ID -> IF
             WritebackResults();
             Memoryaccess();
             InstructionIssueAndExecute();
             DecodeAndRead();
             FetchInstruction();
-            
+                
+            // PrintInstructionWindow(); For debug
             simulation_clock++;
 
         // Branch fetch only in the next cycle after EX completion

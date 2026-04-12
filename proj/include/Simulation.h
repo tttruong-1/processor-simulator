@@ -66,7 +66,6 @@ class Simulation {
             cumulative_load_inst = 0;
             cumulative_store_inst = 0;
 
-            simulated_stats[0] = simulated_stats[1] = simulated_stats[2] = 0.0;
 		};
 		~Simulation() {
 			delete ElementQ;
@@ -92,7 +91,7 @@ class Simulation {
 			printf("===== Simulation Statistics =====\n");
             printf("Cycles = %d\n", simulation_clock);
             printf("Execution Time (ms) = %.6f\n", exec_time_ms);
-            // printf("Total retired instructions = %d\n", retired_count);
+            printf("Total retired instructions = %d\n", retired_count);
 
 			printf("===== Instruction Histogram =====\n");
             if (retired_count > 0) {
@@ -109,6 +108,27 @@ class Simulation {
                 printf("Store %%   = 0.00\n");
             }
 		};
+
+        void PrintInstructionWindow() {
+
+            printf("====INSTRUCTION WINDOW FOR CYCLE %d====\n", simulation_clock);
+            for (PipelineInst* inst : if_stage) {
+                printf("IF INST %s\n", inst->trace_inst->program_counter.c_str());
+            }
+            for (PipelineInst* inst : id_stage) {
+                printf("ID INST %s\n", inst->trace_inst->program_counter.c_str());
+            }
+            for (PipelineInst* inst : ex_stage) {
+                printf("EX INST %s\n", inst->trace_inst->program_counter.c_str());
+            }
+            for (PipelineInst* inst: mem_stage) {
+                printf("MEM INST %s\n", inst->trace_inst->program_counter.c_str());
+            }
+            for (PipelineInst* inst: wb_stage) {
+                printf("WB INST %s\n", inst->trace_inst->program_counter.c_str());
+            }
+        }
+    
 	private:
         // Queues
 		ElementQueue* ElementQ;     // Element Queue for all elements used in simulation
@@ -118,9 +138,6 @@ class Simulation {
         int start_inst;				// Instruction in the trace to start the simulation
 		int inst_count;				// Number of instructions to simulate starting from start_inst
 		int depth_config;			// Pipeline depth configuration
-
-        // Stats
-		double simulated_stats[3]; 
 
         int fetched_count;
         int retired_count;
@@ -139,6 +156,12 @@ class Simulation {
         // Flags
         bool fetch_stalled;
         bool resume_fetch_next_cycle;
+
+        bool used_load_mem_port = false;
+        bool used_store_mem_port = false;
+        bool used_int_unit = false;
+        bool used_fp_unit = false;
+        bool used_branch_unit = false;
 
         uint64_t next_seq_num = 0;      // Next pipeline instance (counter)
 
