@@ -89,17 +89,18 @@ class Simulation {
 		void PrintStatistics() {
 			double exec_time_ms = GetExecutionTimeMs();
 
-			printf("\n===== Simulation Statistics =====\n");
+			printf("===== Simulation Statistics =====\n");
             printf("Cycles = %d\n", simulation_clock);
-            printf("Execution_time_ms = %.6f\n", exec_time_ms);
-            printf("Retired_instructions = %d\n", retired_count);
+            printf("Execution Time (ms) = %.6f\n", exec_time_ms);
+            // printf("Total retired instructions = %d\n", retired_count);
 
+			printf("===== Instruction Histogram =====\n");
             if (retired_count > 0) {
-                printf("Integer %% = %.2f\n", 100.0 * cumulative_integer_inst / retired_count);
-                printf("FP %%      = %.2f\n", 100.0 * cumulative_fp_inst / retired_count);
-                printf("Branch %%  = %.2f\n", 100.0 * cumulative_branch_inst / retired_count);
-                printf("Load %%    = %.2f\n", 100.0 * cumulative_load_inst / retired_count);
-                printf("Store %%   = %.2f\n", 100.0 * cumulative_store_inst / retired_count);
+                printf("Integer (%%) = %.4f\n", 100.0 * cumulative_integer_inst / retired_count);
+                printf("FP (%%)      = %.4f\n", 100.0 * cumulative_fp_inst / retired_count);
+                printf("Branch (%%)  = %.4f\n", 100.0 * cumulative_branch_inst / retired_count);
+                printf("Load (%%)    = %.4f\n", 100.0 * cumulative_load_inst / retired_count);
+                printf("Store (%%)   = %.4f\n", 100.0 * cumulative_store_inst / retired_count);
             } else {
                 printf("Integer %% = 0.00\n");
                 printf("FP %%      = 0.00\n");

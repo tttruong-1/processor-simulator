@@ -39,7 +39,7 @@ int main(int argc, char* argv[]){
    		Simulation* s = new Simulation(trace_file_name, start_inst, inst_count, D);
 
    		// Start Simulation
-		printf("Simulating Simple Processor Pipeline with trace_file = %s, start_inst = %d, inst_count = %d, D = %d.\n", trace_file_name, start_inst, inst_count, D);
+		printf("Simulating Simple Processor Pipeline with: \n- trace_file = %s \n- start_inst = %d \n- inst_count = %d \n- D = %d\n", trace_file_name, start_inst, inst_count, D);
 		s->RunSimulation();
 		s->PrintStatistics(); // final calculated statistics
 
