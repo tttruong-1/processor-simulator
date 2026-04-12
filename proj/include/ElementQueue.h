@@ -2,6 +2,8 @@
 #include <vector>
 #include <string>
 
+#include "instType.h"
+
 #ifndef ELEMENT_QUEUE_H_
 #define ELEMENT_QUEUE_H_
 
@@ -13,7 +15,7 @@ struct ElementQueueNode {
     double arrival_time;                    // Instruction arrival time - depend on when instruction is fetched
     double service_time;                    // Instruction service time (deterministic)  - depend on depth and instruction type
     std::string program_counter;            // Instruction program counter (instruction address)
-    int inst_type;                          // Instruction type (1:int_alu, 2:fp, 3:branch, 4:load, 5:store)
+    instType inst_type;                          // Instruction type (1:int_alu, 2:fp, 3:branch, 4:load, 5:store)
     std::vector<std::string> dependences;   // List of inst PCs that current is dependent on
 };
 

@@ -92,7 +92,7 @@ void ElementQueue::InitializeQueue(char* filename, int start_inst, int inst_coun
             qnode.program_counter = component; // instruction program counter
 
             getline (ss, component, delim);
-            qnode.inst_type = atoi(component.c_str()); // instruction type (1-5)
+            qnode.inst_type = static_cast<instType>(atoi(component.c_str())); // instruction type (1-5)
 
             while (getline (ss, component, delim)) {
                 qnode.dependences.push_back (component); // dependences

@@ -1,4 +1,5 @@
 #include "Simulation.h"
+#include "instType.h"
 
 
 //-----------------Simulation Delays and Execution Times--------------------
@@ -163,12 +164,12 @@ void Simulation::InstructionIssueAndExecute() {
         mem_stage.push_back(inst);
         moved_to_mem++;
 
-        if (type == 1 || type == 2 || type == 3) {
+        if (type == INTEGER || type == FLOATING_POINT || type == BRANCH) {
             MarkDependenceSatisfied(inst);
         }
 
         // Branch resolves after EX completes.
-        if (type == 3) {
+        if (type == BRANCH) {
             resume_fetch_next_cycle = true;
         }
     }
@@ -189,18 +190,18 @@ void Simulation::InstructionIssueAndExecute() {
         }
 
         // Structural hazards for EX 
-        if (type == 1 && used_int_unit) break;
-        if (type == 2 && used_fp_unit) break;
-        if (type == 3 && used_branch_unit) break;
+        if (type == INTEGER && used_int_unit) break;
+        if (type == FLOATING_POINT && used_fp_unit) break;
+        if (type == BRANCH && used_branch_unit) break;
 
         id_stage.pop_front();
         inst->entered_ex = true;
         ex_stage.push_back(inst);
         issued_this_cycle++;
 
-        if (type == 1) used_int_unit = true;
-        if (type == 2) used_fp_unit = true;
-        if (type == 3) used_branch_unit = true;
+        if (type == INTEGER) used_int_unit = true;
+        if (type == FLOATING_POINT) used_fp_unit = true;
+        if (type == BRANCH) used_branch_unit = true;
     }
 }
 
@@ -227,7 +228,7 @@ void Simulation::Memoryaccess() {
         moved_to_wb++;
 
         int type = inst->trace_inst->inst_type;
-        if (type == 4 || type == 5) {
+        if (type == LOAD || type == STORE) {
             MarkDependenceSatisfied(inst);
         }
     }
@@ -243,11 +244,11 @@ void Simulation::WritebackResults() {
         cumulative_execution = simulation_clock;
 
         switch (inst->trace_inst->inst_type) {
-            case 1: cumulative_integer_inst++; break;
-            case 2: cumulative_fp_inst++; break;
-            case 3: cumulative_branch_inst++; break;
-            case 4: cumulative_load_inst++; break;
-            case 5: cumulative_store_inst++; break;
+            case INTEGER: cumulative_integer_inst++; break;
+            case FLOATING_POINT: cumulative_fp_inst++; break;
+            case BRANCH: cumulative_branch_inst++; break;
+            case LOAD: cumulative_load_inst++; break;
+            case STORE: cumulative_store_inst++; break;
             default: break;
         }
 
@@ -258,20 +259,19 @@ void Simulation::WritebackResults() {
 
 //-----------------Simulation Loop--------------------------------
 void Simulation::RunSimulation() {
-    printf("Running Simulation\n");
 
     while (retired_count < inst_count || !PipelineEmpty()) {
-        if (simulation_clock % 100000 == 0) {
-            printf("Cycle: %d | Retired: %d\n", simulation_clock, retired_count);
-        }
-        // WB -> MEM -> EX -> ID -> IF
-        WritebackResults();
-        Memoryaccess();
-        InstructionIssueAndExecute();
-        DecodeAndRead();
-        FetchInstruction();
-
-        simulation_clock++;
+        // if (simulation_clock % 100000 == 0) {
+            //     printf("Cycle: %d | Retired: %d\n", simulation_clock, retired_count);
+            // }
+            // WB -> MEM -> EX -> ID -> IF
+            WritebackResults();
+            Memoryaccess();
+            InstructionIssueAndExecute();
+            DecodeAndRead();
+            FetchInstruction();
+            
+            simulation_clock++;
 
         // Branch fetch only in the next cycle after EX completion
         if (resume_fetch_next_cycle) {
