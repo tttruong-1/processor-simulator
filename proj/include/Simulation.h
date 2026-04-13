@@ -29,9 +29,9 @@ struct PipelineInst {
 
     // for data hazards
     int unresolved_deps;                            // number of unsatisfied dependences
-    bool result_ready;                              // computation done
-    bool entered_ex;                                // entered ex pipeline stage
-    bool entered_mem;                               // entered mem pipeline stage
+    bool is_resolved;                                  // computation done (instruction as dependency is is_resolved)
+    bool entered_ex;                                // entered ex pipeline stage flag
+    bool entered_mem;                               // entered mem pipeline stage flag
 
     std::vector<PipelineInst*> dependents;          // instructions waiting 
 };
@@ -52,12 +52,19 @@ class Simulation {
 
 			ElementQ = new ElementQueue(filename, start_inst, inst_count);
 			// ElementQ->PrintElementQueue();	// For debug
+
 			simulation_clock = 0;
             fetched_count = 0;
             retired_count = 0;
 
             fetch_stalled = false;
             resume_fetch_next_cycle = false;
+
+            used_load_mem_port = false;
+            used_store_mem_port = false;
+            used_int_unit = false;
+            used_fp_unit = false;
+            used_branch_unit = false;
 
             cumulative_integer_inst = 0;
             cumulative_fp_inst = 0;
@@ -108,7 +115,6 @@ class Simulation {
 		};
 
         void PrintInstructionWindow() {
-
             printf("====INSTRUCTION WINDOW FOR CYCLE %d====\n", simulation_clock);
             for (PipelineInst* inst : if_stage) {
                 printf("IF INST %s\n", inst->trace_inst->program_counter.c_str());
@@ -137,8 +143,8 @@ class Simulation {
 		int inst_count;				// Number of instructions to simulate starting from start_inst
 		int depth_config;			// Pipeline depth configuration
 
-        int fetched_count;
-        int retired_count;
+        int fetched_count;          // Cumulative number of fetched instructions
+        int retired_count;          // Cumulative number of retired instructions
 
         // Timer
         int simulation_clock;
@@ -151,14 +157,14 @@ class Simulation {
 		int cumulative_store_inst;		// Accumulated number of retired store instructions
 		
         // Flags
-        bool fetch_stalled;
-        bool resume_fetch_next_cycle;
-
-        bool used_load_mem_port = false;
-        bool used_store_mem_port = false;
-        bool used_int_unit = false;
-        bool used_fp_unit = false;
-        bool used_branch_unit = false;
+        bool fetch_stalled;             // Fetch stall flag for current cycle
+        bool resume_fetch_next_cycle;   // Resume fetch flag for next cycle
+        
+        bool used_load_mem_port;        // Load port in use flag
+        bool used_store_mem_port;       // Store port in use flag
+        bool used_int_unit;             // ALU in use flag
+        bool used_fp_unit;              // FP unit in use flag
+        bool used_branch_unit;          // Branch unit in use flag
 
         uint64_t next_seq_num = 0;      // Next pipeline instance (counter)
 
@@ -178,7 +184,7 @@ class Simulation {
         // Delays and speed
         int GetEXLatency(int inst_type) const;
         int GetMEMLatency(int inst_type) const;
-        double GetFrequencyGHz() const;
+        double GetFrequency() const;
         double GetExecutionTimeMs() const;
 
         // Helpers

@@ -19,7 +19,7 @@ int Simulation::GetMEMLatency(int inst_type) const {
     return 1;
 }
 
-double Simulation::GetFrequencyGHz() const {
+double Simulation::GetFrequency() const {
     switch (depth_config) {
         case 1: return 1.0;
         case 2: return 1.2;
@@ -31,7 +31,7 @@ double Simulation::GetFrequencyGHz() const {
 
 double Simulation::GetExecutionTimeMs() const {
     // time in ms = cycles 
-    return (double)simulation_clock / (GetFrequencyGHz() * 1000000.0);
+    return (double)simulation_clock / (GetFrequency() * 1000000.0);
 }
 
 
@@ -41,12 +41,17 @@ bool Simulation::PipelineEmpty() const {
            mem_stage.empty() && wb_stage.empty();
 }
 
+
 void Simulation::MarkDependenceSatisfied(PipelineInst* inst) {
-    if (inst == nullptr || inst->result_ready) {
+    // If instruction not found or it's result has been set to ready, 
+    if (inst == nullptr || inst->is_resolved) {
         return;
     }
 
-    inst->result_ready = true;
+    // Set current instruction to resolved
+    inst->is_resolved = true;
+
+    // for all instruction dependent on this instruction, remove this dependency from their unresolved dependency count
     for (PipelineInst* dependent : inst->dependents) {
         if (dependent != nullptr && dependent->unresolved_deps > 0) {
             dependent->unresolved_deps--;
@@ -56,29 +61,36 @@ void Simulation::MarkDependenceSatisfied(PipelineInst* inst) {
 
 /**
     Makes the pipeline instance (fetches instruction)
- */
+*/
 PipelineInst* Simulation::BuildFetchedInstruction(ElementQueueNode* src) {
     if (src == nullptr) {
         return nullptr;
     }
 
+    // Initialize new pipeline instruction
     PipelineInst* inst = new PipelineInst;
-    all_insts.push_back(inst);
     inst->trace_inst = src;
     inst->seq_num = next_seq_num++;
     inst->ex_cycles_left = GetEXLatency(src->inst_type);
     inst->mem_cycles_left = GetMEMLatency(src->inst_type);
     inst->unresolved_deps = 0;
-    inst->result_ready = false;
+    inst->is_resolved = false;
     inst->entered_ex = false;
     inst->entered_mem = false;
 
+    all_insts.push_back(inst);
+
     // dependency is on the last dynamic instance of that PC seen so far.
     for (const std::string& dep_pc : src->dependences) {
+        // Find the last instance of the instruction dependence 
         auto it = last_dynamic_pc.find(dep_pc);
+
         if (it != last_dynamic_pc.end() && it->second != nullptr) {
+            // If the dependency is found after start_inst,
+            // and this dependency is not yet is_resolved/completed,
+            // add it to the list of instructions dependent on this dependency
             PipelineInst* producer = it->second;
-            if (!producer->result_ready) {
+            if (!producer->is_resolved) {
                 inst->unresolved_deps++;
                 producer->dependents.push_back(inst);
             }
@@ -101,11 +113,13 @@ void Simulation::FetchInstruction() {
 
     // IF is 2-wide
     while ((int)if_stage.size() < 2 && fetched_count < inst_count) {
+        // Get instruction from ElementQueue
         ElementQueueNode* src = ElementQ->GetElementAtIndex((uint64_t)fetched_count);
         if (src == nullptr) {
             return;
         }
 
+        // Create pipeline instruction from fetched instruction
         PipelineInst* inst = BuildFetchedInstruction(src);
         if_stage.push_back(inst);
         fetched_count++;
@@ -146,6 +160,7 @@ void Simulation::InstructionIssueAndExecute() {
 
         int type = inst->trace_inst->inst_type;
 
+        // Check if LOAD/STORE instruction can be started (stop adding to MEM stage if cannot proceed)
         if (type == LOAD) {
             if (used_load_mem_port) break;
             used_load_mem_port = true;
@@ -155,11 +170,12 @@ void Simulation::InstructionIssueAndExecute() {
             used_store_mem_port = true;
         }
 
+        // Remove from EX state and add to MEM stage
         ex_stage.pop_front();
         inst->entered_mem = true;
         mem_stage.push_back(inst);
-
-
+        
+        // Update dependency map if completed instruction is INT, FP, BRANCH
         if (type == INTEGER) {
             MarkDependenceSatisfied(inst);
             used_int_unit = false;
@@ -187,22 +203,30 @@ void Simulation::InstructionIssueAndExecute() {
         }
 
         // Structural hazards for EX 
-        if (type == INTEGER && used_int_unit) break;
-        if (type == FLOATING_POINT && used_fp_unit) break;
-        if (type == BRANCH && used_branch_unit) break;
+        if ((type == INTEGER && used_int_unit) ||
+            (type == FLOATING_POINT && used_fp_unit) ||
+            (type == BRANCH && used_branch_unit)) {
+                break;
+            }
 
         id_stage.pop_front();
         inst->entered_ex = true;
         ex_stage.push_back(inst);
 
-        if (type == INTEGER) used_int_unit = true;
-        if (type == FLOATING_POINT) used_fp_unit = true;
-        if (type == BRANCH) used_branch_unit = true;
+        // Update execution type units in use
+        if (type == INTEGER) 
+            used_int_unit = true;
+
+        else if (type == FLOATING_POINT) 
+            used_fp_unit = true;
+
+        else if (type == BRANCH) 
+            used_branch_unit = true;
     }
 }
 
 void Simulation::Memoryaccess() {
-    // Advance instructions already in MEM
+    // Advance instructions already in MEM if require >1 cycle to finish
     for (PipelineInst* inst : mem_stage) {
         if (inst->mem_cycles_left > 0) {
             inst->mem_cycles_left--;
@@ -210,8 +234,7 @@ void Simulation::Memoryaccess() {
     }
 
     // Move completed MEM instructions to WB in-order
-    int moved_to_wb = 0;
-    while (!mem_stage.empty() && moved_to_wb < 2) {
+    while (!mem_stage.empty() && (int)wb_stage.size() < 2) {
         PipelineInst* inst = mem_stage.front();
 
         // Maintain in-order leaving MEM
@@ -221,8 +244,8 @@ void Simulation::Memoryaccess() {
 
         mem_stage.pop_front();
         wb_stage.push_back(inst);
-        moved_to_wb++;
 
+        // Update dependency map 
         int type = inst->trace_inst->inst_type;
 
         if (type == LOAD){
@@ -244,6 +267,7 @@ void Simulation::WritebackResults() {
 
         retired_count++;
 
+        // Update simulation stats for completed instruction
         switch (inst->trace_inst->inst_type) {
             case INTEGER: cumulative_integer_inst++; break;
             case FLOATING_POINT: cumulative_fp_inst++; break;
@@ -264,6 +288,7 @@ void Simulation::RunSimulation() {
     while (retired_count < inst_count || !PipelineEmpty()) {
 
             // WB -> MEM -> EX -> ID -> IF
+            // Pipeline in reverse order as to not get stalled if all stages are full
             WritebackResults();
             Memoryaccess();
             InstructionIssueAndExecute();
