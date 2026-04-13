@@ -29,9 +29,9 @@ struct PipelineInst {
 
     // for data hazards
     int unresolved_deps;                            // number of unsatisfied dependences
-    bool result_ready;                              // computation done
-    bool entered_ex;                                // entered ex pipeline stage
-    bool entered_mem;                               // entered mem pipeline stage
+    bool is_resolved;                                  // computation done (instruction as dependency is is_resolved)
+    bool entered_ex;                                // entered ex pipeline stage flag
+    bool entered_mem;                               // entered mem pipeline stage flag
 
     std::vector<PipelineInst*> dependents;          // instructions waiting 
 };
@@ -52,6 +52,7 @@ class Simulation {
 
 			ElementQ = new ElementQueue(filename, start_inst, inst_count);
 			// ElementQ->PrintElementQueue();	// For debug
+
 			simulation_clock = 0;
             fetched_count = 0;
             retired_count = 0;
@@ -59,14 +60,18 @@ class Simulation {
             fetch_stalled = false;
             resume_fetch_next_cycle = false;
 
-            cumulative_execution = 0;
+            used_load_mem_port = false;
+            used_store_mem_port = false;
+            used_int_unit = false;
+            used_fp_unit = false;
+            used_branch_unit = false;
+
             cumulative_integer_inst = 0;
             cumulative_fp_inst = 0;
             cumulative_branch_inst = 0;
             cumulative_load_inst = 0;
             cumulative_store_inst = 0;
 
-            simulated_stats[0] = simulated_stats[1] = simulated_stats[2] = 0.0;
 		};
 		~Simulation() {
 			delete ElementQ;
@@ -87,12 +92,11 @@ class Simulation {
 
 		// This function should be called to print periodic and/or end-of-simulation statistics
 		void PrintStatistics() {
-			double exec_time_ms = GetExecutionTimeMs();
+			double exec_time_ms = GetExecutionTime();
 
 			printf("===== Simulation Statistics =====\n");
             printf("Cycles = %d\n", simulation_clock);
             printf("Execution Time (ms) = %.6f\n", exec_time_ms);
-            // printf("Total retired instructions = %d\n", retired_count);
 
 			printf("===== Instruction Histogram =====\n");
             if (retired_count > 0) {
@@ -109,6 +113,26 @@ class Simulation {
                 printf("Store %%   = 0.00\n");
             }
 		};
+
+        void PrintInstructionWindow() {
+            printf("====INSTRUCTION WINDOW FOR CYCLE %d====\n", simulation_clock);
+            for (PipelineInst* inst : if_stage) {
+                printf("IF INST %s\n", inst->trace_inst->program_counter.c_str());
+            }
+            for (PipelineInst* inst : id_stage) {
+                printf("ID INST %s\n", inst->trace_inst->program_counter.c_str());
+            }
+            for (PipelineInst* inst : ex_stage) {
+                printf("EX INST %s\n", inst->trace_inst->program_counter.c_str());
+            }
+            for (PipelineInst* inst: mem_stage) {
+                printf("MEM INST %s\n", inst->trace_inst->program_counter.c_str());
+            }
+            for (PipelineInst* inst: wb_stage) {
+                printf("WB INST %s\n", inst->trace_inst->program_counter.c_str());
+            }
+        }
+    
 	private:
         // Queues
 		ElementQueue* ElementQ;     // Element Queue for all elements used in simulation
@@ -119,17 +143,13 @@ class Simulation {
 		int inst_count;				// Number of instructions to simulate starting from start_inst
 		int depth_config;			// Pipeline depth configuration
 
-        // Stats
-		double simulated_stats[3]; 
-
-        int fetched_count;
-        int retired_count;
+        int fetched_count;          // Cumulative number of fetched instructions
+        int retired_count;          // Cumulative number of retired instructions
 
         // Timer
         int simulation_clock;
 
 		// Performance metrics
-		int cumulative_execution;		// Accumulated execution time of completed instructions
 		int cumulative_integer_inst;	// Accumulated number of retired integer instructions
 		int cumulative_fp_inst;			// Accumulated number of retired floating point instructions
 		int cumulative_branch_inst;		// Accumulated number of retired branch instructions
@@ -137,8 +157,14 @@ class Simulation {
 		int cumulative_store_inst;		// Accumulated number of retired store instructions
 		
         // Flags
-        bool fetch_stalled;
-        bool resume_fetch_next_cycle;
+        bool fetch_stalled;             // Fetch stall flag for current cycle
+        bool resume_fetch_next_cycle;   // Resume fetch flag for next cycle
+        
+        bool used_load_mem_port;        // Load port in use flag
+        bool used_store_mem_port;       // Store port in use flag
+        bool used_int_unit;             // ALU in use flag
+        bool used_fp_unit;              // FP unit in use flag
+        bool used_branch_unit;          // Branch unit in use flag
 
         uint64_t next_seq_num = 0;      // Next pipeline instance (counter)
 
@@ -156,10 +182,10 @@ class Simulation {
         std::vector<PipelineInst*> all_insts;
 
         // Delays and speed
-        int GetEXLatency(int inst_type) const;
-        int GetMEMLatency(int inst_type) const;
-        double GetFrequencyGHz() const;
-        double GetExecutionTimeMs() const;
+        int GetEXCycleCount(int inst_type) const;
+        int GetMEMCycleCount(int inst_type) const;
+        double GetFrequency() const;
+        double GetExecutionTime() const;
 
         // Helpers
         bool PipelineEmpty() const;
