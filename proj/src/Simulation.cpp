@@ -243,7 +243,6 @@ void Simulation::WritebackResults() {
         wb_stage.pop_front();
 
         retired_count++;
-        cumulative_execution = simulation_clock;
 
         switch (inst->trace_inst->inst_type) {
             case INTEGER: cumulative_integer_inst++; break;
@@ -271,7 +270,7 @@ void Simulation::RunSimulation() {
             DecodeAndRead();
             FetchInstruction();
                 
-            // PrintInstructionWindow(); For debug
+            // PrintInstructionWindow(); //For debug
             simulation_clock++;
 
         // Branch fetch only in the next cycle after EX completion

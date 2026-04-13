@@ -59,7 +59,6 @@ class Simulation {
             fetch_stalled = false;
             resume_fetch_next_cycle = false;
 
-            cumulative_execution = 0;
             cumulative_integer_inst = 0;
             cumulative_fp_inst = 0;
             cumulative_branch_inst = 0;
@@ -91,7 +90,6 @@ class Simulation {
 			printf("===== Simulation Statistics =====\n");
             printf("Cycles = %d\n", simulation_clock);
             printf("Execution Time (ms) = %.6f\n", exec_time_ms);
-            printf("Total retired instructions = %d\n", retired_count);
 
 			printf("===== Instruction Histogram =====\n");
             if (retired_count > 0) {
@@ -146,7 +144,6 @@ class Simulation {
         int simulation_clock;
 
 		// Performance metrics
-		int cumulative_execution;		// Accumulated execution time of completed instructions
 		int cumulative_integer_inst;	// Accumulated number of retired integer instructions
 		int cumulative_fp_inst;			// Accumulated number of retired floating point instructions
 		int cumulative_branch_inst;		// Accumulated number of retired branch instructions
