@@ -92,7 +92,7 @@ class Simulation {
 
 		// This function should be called to print periodic and/or end-of-simulation statistics
 		void PrintStatistics() {
-			double exec_time_ms = GetExecutionTimeMs();
+			double exec_time_ms = GetExecutionTime();
 
 			printf("===== Simulation Statistics =====\n");
             printf("Cycles = %d\n", simulation_clock);
@@ -182,10 +182,10 @@ class Simulation {
         std::vector<PipelineInst*> all_insts;
 
         // Delays and speed
-        int GetEXLatency(int inst_type) const;
-        int GetMEMLatency(int inst_type) const;
+        int GetEXCycleCount(int inst_type) const;
+        int GetMEMCycleCount(int inst_type) const;
         double GetFrequency() const;
-        double GetExecutionTimeMs() const;
+        double GetExecutionTime() const;
 
         // Helpers
         bool PipelineEmpty() const;

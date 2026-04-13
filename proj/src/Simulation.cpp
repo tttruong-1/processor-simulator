@@ -3,7 +3,11 @@
 
 
 //-----------------Simulation Delays and Execution Times--------------------
-int Simulation::GetEXLatency(int inst_type) const {
+
+/**
+Return EX cycle count for INT/FP/BRANCH instructions
+*/
+int Simulation::GetEXCycleCount(int inst_type) const {
     // D=2 and D=4: FP spends 2 cycles in EX
     if ((depth_config == 2 || depth_config == 4) && inst_type == FLOATING_POINT) {
         return 2;
@@ -11,7 +15,10 @@ int Simulation::GetEXLatency(int inst_type) const {
     return 1;
 }
 
-int Simulation::GetMEMLatency(int inst_type) const {
+/**
+Return MEM cycle count for STORE/LOAD instructions
+*/
+int Simulation::GetMEMCycleCount(int inst_type) const {
     // D=3 and D=4: Loads spend 3 cycles in MEM
     if ((depth_config == 3 || depth_config == 4) && inst_type == LOAD) {
         return 3;
@@ -19,6 +26,9 @@ int Simulation::GetMEMLatency(int inst_type) const {
     return 1;
 }
 
+/**
+Return frequency based on D (GHz)
+*/
 double Simulation::GetFrequency() const {
     switch (depth_config) {
         case 1: return 1.0;
@@ -29,7 +39,10 @@ double Simulation::GetFrequency() const {
     }
 }
 
-double Simulation::GetExecutionTimeMs() const {
+/**
+Return execution time (ms)
+*/
+double Simulation::GetExecutionTime() const {
     // time in ms = cycles 
     return (double)simulation_clock / (GetFrequency() * 1000000.0);
 }
@@ -71,8 +84,8 @@ PipelineInst* Simulation::BuildFetchedInstruction(ElementQueueNode* src) {
     PipelineInst* inst = new PipelineInst;
     inst->trace_inst = src;
     inst->seq_num = next_seq_num++;
-    inst->ex_cycles_left = GetEXLatency(src->inst_type);
-    inst->mem_cycles_left = GetMEMLatency(src->inst_type);
+    inst->ex_cycles_left = GetEXCycleCount(src->inst_type);
+    inst->mem_cycles_left = GetMEMCycleCount(src->inst_type);
     inst->unresolved_deps = 0;
     inst->is_resolved = false;
     inst->entered_ex = false;
