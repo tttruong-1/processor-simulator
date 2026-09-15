@@ -26,5 +26,6 @@ A high-performance C++ CPU cycle simulator developed to model pipeline depths, i
 
 3. Type in linux terminal with arguments to run:
 ```bash
-	./proj [filename (instructions to run)] [line of first instruction (int)] [total instructions to run (int)] [pipeline depth (int)]
+	./proj srv_0 100 150000 4
 ```
+Where srv_0 is the filename of a given trace of instructions to run, 100 (int) is the first line of instructions to run, 150000 (int) is the number of instructions to run and 4 is the pipeline depth (from 1-4). Any of such arguments can be replaced to test different metrics.
