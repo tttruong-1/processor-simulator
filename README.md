@@ -24,7 +24,7 @@ A high-performance C++ CPU cycle simulator developed to model pipeline depths, i
 	make
 ```
 
-3. Type in linux terminal to run:
+3. Type in linux terminal with arguments to run:
 ```bash
-	./proj
+	./proj [filename (instructions to run)] [line of first instruction (int)] [total instructions to run (int)] [pipeline depth (int)]
 ```
