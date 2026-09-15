@@ -4,7 +4,7 @@ A high-performance C++ CPU cycle simulator developed to model pipeline depths, i
 
 ## Key Features
 
-- Simulation of a CPU. Runs heavy work-load instructions given large files and outputs statistics of speed and memory usage.
+- Simulation of a CPU. Runs heavy work-load instructions given large trace files and outputs statistics of speed and memory usage.
 - Follows the pipeline of a basic processor structure.
 
 ## System librares required
